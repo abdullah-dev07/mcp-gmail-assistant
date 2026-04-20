@@ -72,6 +72,55 @@ server.tool(
   }
 );
 
+// ── helpers for body extraction ──────────────────────────────────
+function decodeBase64Url(data) {
+  if (!data) return "";
+  return Buffer.from(data, "base64").toString("utf-8");
+}
+
+function findPartByMime(node, mime) {
+  if (!node) return null;
+  if (node.mimeType === mime && node.body?.data) return node;
+  for (const p of node.parts || []) {
+    const m = findPartByMime(p, mime);
+    if (m) return m;
+  }
+  return null;
+}
+
+function htmlToText(html) {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li|tr|td|blockquote)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function extractBody(payload) {
+  const plain = findPartByMime(payload, "text/plain");
+  if (plain) return decodeBase64Url(plain.body.data);
+
+  const html = findPartByMime(payload, "text/html");
+  if (html) return htmlToText(decodeBase64Url(html.body.data));
+
+  if (payload.body?.data) {
+    const raw = decodeBase64Url(payload.body.data);
+    return payload.mimeType?.startsWith("text/html") ? htmlToText(raw) : raw;
+  }
+  return "";
+}
+
 // ── TOOL 2: Read full email ──────────────────────────────────────
 server.tool(
   "gmail_read_message",
@@ -91,19 +140,7 @@ server.tool(
     const from = headers.find((h) => h.name === "From")?.value || "Unknown";
     const date = headers.find((h) => h.name === "Date")?.value || "Unknown";
 
-    // extract body
-    let body = "";
-    const parts = res.data.payload.parts || [];
-    for (const part of parts) {
-      if (part.mimeType === "text/plain" && part.body?.data) {
-        body = Buffer.from(part.body.data, "base64").toString("utf-8");
-        break;
-      }
-    }
-
-    if (!body && res.data.payload.body?.data) {
-      body = Buffer.from(res.data.payload.body.data, "base64").toString("utf-8");
-    }
+    const body = extractBody(res.data.payload);
 
     return {
       content: [

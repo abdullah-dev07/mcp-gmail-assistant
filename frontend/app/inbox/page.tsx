@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ApiError,
+  confirmChatAction,
   getEmail,
   listEmails,
   sendChatMessage,
   sendEmail,
   suggestReply,
+  type ChatResult,
   type Email,
   type EmailDetail as EmailDetailType,
+  type PendingAction,
 } from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import EmailDetail from "@/components/EmailDetail";
@@ -189,9 +192,20 @@ export default function InboxPage() {
     }
   }
 
-  async function runChat(message: string): Promise<string | null> {
+  async function runChat(message: string): Promise<ChatResult | null> {
     try {
-      const { reply } = await sendChatMessage(message);
+      return await sendChatMessage(message);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  }
+
+  async function runConfirm(action: PendingAction): Promise<string | null> {
+    try {
+      const { reply } = await confirmChatAction(action);
+      // Gmail may have changed; refresh in the background.
+      refresh();
       return reply;
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) return null;
@@ -250,7 +264,7 @@ export default function InboxPage() {
           />
         </main>
       </div>
-      <ChatBar onSend={runChat} />
+      <ChatBar onSend={runChat} onConfirm={runConfirm} />
     </div>
   );
 }

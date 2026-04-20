@@ -143,12 +143,29 @@ export async function sendEmail(payload: {
   });
 }
 
-export async function sendChatMessage(
-  message: string
-): Promise<{ reply: string }> {
-  return request<{ reply: string }>(`/chat`, {
+export type PendingAction = {
+  tool: string;
+  args: Record<string, unknown>;
+};
+
+export type ChatResult = {
+  reply: string;
+  pendingAction?: PendingAction | null;
+};
+
+export async function sendChatMessage(message: string): Promise<ChatResult> {
+  return request<ChatResult>(`/chat`, {
     method: "POST",
     body: JSON.stringify({ message }),
+  });
+}
+
+export async function confirmChatAction(
+  action: PendingAction
+): Promise<{ reply: string }> {
+  return request<{ reply: string }>(`/chat/confirm`, {
+    method: "POST",
+    body: JSON.stringify(action),
   });
 }
 

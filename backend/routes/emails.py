@@ -1,8 +1,23 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, EmailStr, Field
 
 from services.mcp_service import call_mcp_tool
 
 router = APIRouter()
+
+
+class SendEmailRequest(BaseModel):
+    to: EmailStr
+    subject: str = Field(..., min_length=1, max_length=998)
+    body: str = Field(..., min_length=1)
+    # Accepted for forward-compat with threaded replies; the MCP send tool
+    # currently creates a new thread regardless.
+    inReplyTo: str | None = None
+
+
+class SendEmailResponse(BaseModel):
+    ok: bool = True
+    detail: str
 
 
 def _parse_read_message(blob: str, message_id: str) -> dict:
@@ -44,6 +59,19 @@ def _parse_read_message(blob: str, message_id: str) -> dict:
     }
 
 
+@router.post("/send", response_model=SendEmailResponse)
+async def send_email(req: SendEmailRequest) -> SendEmailResponse:
+    try:
+        text = await call_mcp_tool(
+            "gmail_send_message",
+            {"to": req.to, "subject": req.subject, "body": req.body},
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"MCP call failed: {exc}")
+    return SendEmailResponse(detail=text)
+
+
+# NOTE: keep the dynamic route last so `/send` is not captured by `{message_id}`.
 @router.get("/{message_id}")
 async def read_email(message_id: str):
     try:
