@@ -80,7 +80,7 @@ export default function Sidebar({
     <aside className="flex h-full w-full sm:w-80 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)]">
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-[var(--accent)] text-[var(--accent-foreground)] flex items-center justify-center text-xs font-semibold">
+          <div className="btn-accent h-7 w-7 rounded-lg flex items-center justify-center text-xs font-semibold">
             M
           </div>
           <span className="text-sm font-semibold tracking-tight">Mailmind</span>
@@ -98,7 +98,7 @@ export default function Sidebar({
       <div className="px-3 py-3">
         <button
           onClick={onCompose}
-          className="w-full h-10 rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] text-sm font-medium transition hover:opacity-90"
+          className="btn-accent w-full h-10 rounded-full text-sm font-medium"
         >
           Compose
         </button>

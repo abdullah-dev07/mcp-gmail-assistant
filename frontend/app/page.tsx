@@ -39,7 +39,7 @@ export default function Landing() {
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/inbox"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-[var(--accent)] px-6 text-sm font-medium text-[var(--accent-foreground)] transition hover:opacity-90"
+              className="btn-accent inline-flex h-11 items-center justify-center rounded-full px-6 text-sm font-medium"
             >
               Open inbox
             </Link>

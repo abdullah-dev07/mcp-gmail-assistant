@@ -1,31 +1,38 @@
 @import "tailwindcss";
 
+/*
+ * Mailmind — dark, futuristic theme.
+ * Deep blue-black base, cyan accent, glass surfaces, subtle grid + glow.
+ * All components consume these tokens, so tuning here retints the whole UI.
+ */
 :root {
-  --background: #fafafa;
-  --foreground: #0a0a0a;
-  --surface: #ffffff;
-  --surface-muted: #f4f4f5;
-  --border: #e4e4e7;
-  --border-strong: #d4d4d8;
-  --muted: #71717a;
-  --accent: #2563eb;
-  --accent-foreground: #ffffff;
-  --danger: #dc2626;
-}
+  color-scheme: dark;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-    --surface: #0f0f11;
-    --surface-muted: #18181b;
-    --border: #27272a;
-    --border-strong: #3f3f46;
-    --muted: #a1a1aa;
-    --accent: #3b82f6;
-    --accent-foreground: #ffffff;
-    --danger: #ef4444;
-  }
+  --background: #05070d;
+  --background-elev: #0a0d14;
+  --foreground: #e6eaf2;
+
+  --surface: rgba(15, 20, 32, 0.72);
+  --surface-solid: #0d1220;
+  --surface-muted: rgba(255, 255, 255, 0.035);
+
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --muted: #8a93a6;
+
+  --accent: #22d3ee;
+  --accent-strong: #06b6d4;
+  --accent-foreground: #04070d;
+  --accent-glow: 0 0 0 1px rgba(34, 211, 238, 0.35),
+    0 0 24px -4px rgba(34, 211, 238, 0.55);
+
+  --danger: #f87171;
+  --success: #34d399;
+
+  --grid: rgba(255, 255, 255, 0.035);
+  --radius: 14px;
+  --radius-lg: 20px;
 }
 
 @theme inline {
@@ -39,6 +46,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-danger: var(--danger);
+  --color-success: var(--success);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -49,8 +57,103 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
 }
 
+/* Ambient background: radial cyan/violet glow + faint grid overlay. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(1200px 700px at 15% -10%, rgba(34, 211, 238, 0.10), transparent 60%),
+    radial-gradient(900px 600px at 110% 10%, rgba(139, 92, 246, 0.09), transparent 55%),
+    radial-gradient(700px 500px at 50% 110%, rgba(59, 130, 246, 0.08), transparent 60%),
+    var(--background);
+  pointer-events: none;
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 30%, #000 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 40%, transparent 80%);
+  pointer-events: none;
+}
+
+/* Glassy card surfaces. */
+.surface-glass {
+  background: var(--surface);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border: 1px solid var(--border);
+}
+
+/* Accent glow utilities (used via className="btn-accent" etc.). */
+.btn-accent {
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: var(--accent-foreground);
+  box-shadow: var(--accent-glow);
+  transition: transform 120ms ease, box-shadow 200ms ease, filter 200ms ease;
+}
+.btn-accent:hover {
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.55),
+    0 0 36px -4px rgba(34, 211, 238, 0.7);
+}
+.btn-accent:active {
+  transform: translateY(1px);
+}
+
+/* Focus ring uses the accent glow so it reads as "active" HUD element. */
+:where(button, a, input, textarea, select):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(5, 7, 13, 1), 0 0 0 3px var(--accent);
+  border-radius: calc(var(--radius) - 6px);
+}
+
+/* Inputs & textareas: dark glass with cyan focus edge. */
+input,
+textarea,
+select {
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  transition: border-color 160ms ease, box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in oklab, var(--muted), transparent 25%);
+}
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: var(--border-strong);
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: rgba(34, 211, 238, 0.55);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18);
+}
+
+/* Selection */
+::selection {
+  background: rgba(34, 211, 238, 0.35);
+  color: #fff;
+}
+
+/* Scrollbars */
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -59,9 +162,12 @@ body {
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--border-strong);
+  background: rgba(34, 211, 238, 0.35);
+  background-clip: padding-box;
 }

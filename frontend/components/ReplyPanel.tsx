@@ -117,7 +117,7 @@ export default function ReplyPanel({
         <button
           onClick={onSend}
           disabled={!canSend}
-          className="inline-flex h-9 items-center gap-2 rounded-full bg-[var(--accent)] px-5 text-sm font-medium text-[var(--accent-foreground)] transition hover:opacity-90 disabled:opacity-50"
+          className="btn-accent inline-flex h-9 items-center gap-2 rounded-full px-5 text-sm font-medium disabled:opacity-50"
         >
           {sending && <Loader2 className="h-4 w-4 animate-spin" />}
           Send

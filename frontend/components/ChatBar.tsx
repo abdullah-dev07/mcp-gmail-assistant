@@ -128,7 +128,7 @@ export default function ChatBar({ onSend, onConfirm }: Props) {
               <button
                 onClick={confirmAction}
                 disabled={confirming}
-                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 text-xs font-medium text-[var(--accent-foreground)] transition hover:opacity-90 disabled:opacity-60"
+                className="btn-accent inline-flex h-8 items-center gap-1.5 rounded-full px-4 text-xs font-medium disabled:opacity-60"
               >
                 {confirming ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -163,7 +163,7 @@ export default function ChatBar({ onSend, onConfirm }: Props) {
         <button
           onClick={submit}
           disabled={loading || !value.trim()}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-foreground)] transition hover:opacity-90 disabled:opacity-50"
+          className="btn-accent inline-flex h-8 w-8 items-center justify-center rounded-full disabled:opacity-50"
           aria-label="Send"
         >
           {loading ? (
