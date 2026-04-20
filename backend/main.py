@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import auth, chat
+from routes import auth, chat, emails
 
 app = FastAPI()
 
@@ -14,6 +14,7 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
+app.include_router(emails.router, prefix="/emails", tags=["emails"])
 
 @app.get("/")
 def root():
