@@ -26,7 +26,7 @@ from services.mcp_service import call_mcp_tool, get_mcp_tools
 load_dotenv()
 
 _API_KEY = os.getenv("GEMINI_API_KEY")
-_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
 if not _API_KEY:
     raise RuntimeError("GEMINI_API_KEY is not set in backend/.env")
