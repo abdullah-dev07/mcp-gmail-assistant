@@ -1,0 +1,17 @@
+.git
+.gitignore
+.DS_Store
+node_modules
+.next
+out
+.turbo
+npm-debug.log
+yarn-error.log
+Dockerfile
+.dockerignore
+README.md
+AGENTS.md
+CLAUDE.md
+.env
+.env.*
+!.env.example

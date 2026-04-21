@@ -1,0 +1,41 @@
+# Root-level dockerignore — applied when the build context is the repo root
+# (used by backend/Dockerfile since it needs both backend/ and mcp-server/).
+
+# VCS / IDE
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.coverage
+**/htmlcov
+backend/.venv
+
+# Node
+**/node_modules
+**/npm-debug.log
+**/yarn-error.log
+
+# Next.js
+frontend/.next
+frontend/out
+frontend/.turbo
+
+# Docs / misc
+**/*.md
+Makefile
+.env.example
+
+# Never ship real secrets into images — Compose mounts .env at runtime
+# via `env_file`. These are safely excluded from the build context.
+**/.env
+**/.env.*
+!**/.env.example
