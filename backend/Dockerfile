@@ -47,5 +47,7 @@ COPY mcp-server ./mcp-server
 WORKDIR /app/backend
 EXPOSE 8001
 
-# `--host 0.0.0.0` so the container's published port is reachable.
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+# Honour $PORT if the host (Render, Railway, Fly, Heroku…) injects one,
+# otherwise fall back to 8001 for local Docker / docker-compose.
+# Shell form is required so ${PORT:-8001} is expanded by /bin/sh.
+CMD ["sh", "-c", "exec python -m uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001}"]
