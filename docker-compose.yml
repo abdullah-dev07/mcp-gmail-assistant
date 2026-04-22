@@ -31,11 +31,14 @@ services:
   frontend:
     build:
       context: ./frontend
-      # Build-time only: baked into the browser bundle. At runtime the
-      # user's browser hits this URL directly (not from inside Docker),
-      # so localhost:8001 is correct for local dev.
+      # Build-time args are baked into the browser bundle. At runtime the
+      # user's browser hits these values directly (not from inside Docker),
+      # so localhost is correct for local dev.
       args:
         NEXT_PUBLIC_BACKEND_URL: http://localhost:8001
+        # Must match API_KEY in backend/.env. Read from host shell / .env so
+        # it never ends up in version control.
+        NEXT_PUBLIC_API_KEY: ${API_KEY-}
     container_name: mailmind-frontend
     ports:
       - "3000:3000"
