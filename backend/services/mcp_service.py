@@ -1,31 +1,54 @@
+"""MCP client wrapper.
+
+Spawns the Node MCP server as a short-lived subprocess per call, with the
+*caller's* Gmail refresh token injected into its env. The MCP server
+(`mcp-server/index.js`) is unchanged — it still reads GOOGLE_REFRESH_TOKEN
+from process.env, we just make sure the value we hand it belongs to the
+user making the HTTP request.
+
+Starting a Node process per call costs ~200-500 ms. Fine for this project;
+if it ever matters, switch to a per-user long-lived ClientSession cached
+in a dict keyed by user_id.
+"""
+
+from __future__ import annotations
+
 import os
+
+from dotenv import load_dotenv
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from dotenv import load_dotenv
 
 load_dotenv()
 
-server_params = StdioServerParameters(
-    command="node",
-    args=["../mcp-server/index.js"],
-    env={
-        # pass these directly so MCP server gets them regardless of cwd
-        "GOOGLE_CLIENT_ID": os.getenv("GOOGLE_CLIENT_ID"),
-        "GOOGLE_CLIENT_SECRET": os.getenv("GOOGLE_CLIENT_SECRET"),
-        "GOOGLE_REFRESH_TOKEN": os.getenv("GOOGLE_REFRESH_TOKEN"),
-        "PATH": os.environ.get("PATH", ""),  # needed for node to run
-    }
-)
 
-async def get_mcp_tools():
-    async with stdio_client(server_params) as (read, write):
+def _server_params(refresh_token: str) -> StdioServerParameters:
+    return StdioServerParameters(
+        command="node",
+        args=["../mcp-server/index.js"],
+        env={
+            "GOOGLE_CLIENT_ID": os.getenv("GOOGLE_CLIENT_ID", ""),
+            "GOOGLE_CLIENT_SECRET": os.getenv("GOOGLE_CLIENT_SECRET", ""),
+            "GOOGLE_REFRESH_TOKEN": refresh_token,
+            # Node needs PATH to resolve itself + its deps when spawned.
+            "PATH": os.environ.get("PATH", ""),
+        },
+    )
+
+
+async def get_mcp_tools(refresh_token: str):
+    async with stdio_client(_server_params(refresh_token)) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
-            tools = await session.list_tools()
-            return tools
+            return await session.list_tools()
 
-async def call_mcp_tool(tool_name: str, arguments: dict):
-    async with stdio_client(server_params) as (read, write):
+
+async def call_mcp_tool(
+    tool_name: str,
+    arguments: dict,
+    refresh_token: str,
+) -> str:
+    async with stdio_client(_server_params(refresh_token)) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
             result = await session.call_tool(tool_name, arguments)

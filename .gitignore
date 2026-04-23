@@ -59,4 +59,10 @@ coverage/
 *.pem
 *.key
 
+# ---------- app data ----------
+# SQLite DB that stores per-user encrypted Gmail refresh tokens.
+*.db
+*.db-wal
+*.db-shm
+
 Makefile

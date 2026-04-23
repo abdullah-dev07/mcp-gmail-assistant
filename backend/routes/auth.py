@@ -1,8 +1,19 @@
-from fastapi import APIRouter
+from __future__ import annotations
+
+import os
+
+import httpx
+from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
-import os
-from dotenv import load_dotenv
+
+from auth_session import (
+    clear_session_cookie,
+    current_user_id,
+    issue_session_cookie,
+)
+from db import delete_user, get_email, upsert_user
 
 load_dotenv()
 
@@ -12,9 +23,14 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/gmail.modify",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "openid",
 ]
 
-def get_flow():
+_FRONTEND_BASE = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
+
+
+def _flow() -> Flow:
     return Flow.from_client_config(
         {
             "web": {
@@ -32,55 +48,63 @@ def get_flow():
 
 @router.get("/login")
 def login():
-    print("Login hit")
-    flow = get_flow()
-    auth_url, _ = flow.authorization_url(
+    flow = _flow()
+    auth_url, _state = flow.authorization_url(
         access_type="offline",
         include_granted_scopes="true",
-        prompt="consent"      # forces refresh token every time
+        # Force Google to return a refresh_token every time. Without this,
+        # Google only emits one on a user's very first consent, and you get
+        # blank refresh_tokens on reconnect.
+        prompt="consent",
     )
     return RedirectResponse(auth_url)
 
 
 @router.get("/callback")
-def callback(code: str):
-    print("Callback hit")
-    flow = get_flow()
+async def callback(code: str):
+    flow = _flow()
+    # google-auth-oauthlib logs a warning when we don't validate scopes
+    # 1-for-1 (Google sometimes normalises them); that's fine here.
     flow.fetch_token(code=code)
+    creds = flow.credentials
+
+    if not creds.refresh_token:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Google did not return a refresh token. Revoke Mailmind's "
+                "access at https://myaccount.google.com/permissions and try "
+                "again."
+            ),
+        )
+
+    # Learn which Google account this is so we can key rows by email
+    # instead of minting a fresh user_id on every reconnect.
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(
+            "https://openidconnect.googleapis.com/v1/userinfo",
+            headers={"Authorization": f"Bearer {creds.token}"},
+        )
+        r.raise_for_status()
+        email = r.json().get("email")
+
+    if not email:
+        raise HTTPException(status_code=502, detail="Google did not return an email address")
+
+    user_id = upsert_user(email=email, refresh_token=creds.refresh_token)
+
+    resp = RedirectResponse(url=f"{_FRONTEND_BASE}/?connected=1")
+    issue_session_cookie(resp, user_id)
+    return resp
 
 
-    credentials = flow.credentials
-
-    # Print tokens — copy refresh token into mcp-server/.env
-    print("\n✅ AUTH SUCCESS")
-    print(f"Access Token:  {credentials.token}")
-    print(f"Refresh Token: {credentials.refresh_token}")
-    print("\nCopy the refresh token into your mcp-server/.env\n")
-
-    # TODO: store in DB per user — for now just return it
-    return {
-        "access_token": credentials.token,
-        "refresh_token": credentials.refresh_token,
-        "message": "Copy the refresh token into mcp-server/.env"
-    }
+@router.get("/me")
+def me(user_id: str = Depends(current_user_id)):
+    return {"userId": user_id, "email": get_email(user_id)}
 
 
-
-from services.mcp_service import get_mcp_tools, call_mcp_tool
-
-@router.get("/test-mcp")
-async def test_mcp():
-    # test 1 - list available tools
-    tools = await get_mcp_tools()
-    tool_names = [tool.name for tool in tools.tools]
-    
-    # test 2 - fetch 3 unread emails
-    emails = await call_mcp_tool("gmail_list_messages", {
-        "query": "is:unread",
-        "maxResults": 3
-    })
-    
-    return {
-        "available_tools": tool_names,
-        "emails": emails
-    }
+@router.post("/logout")
+def logout(response: Response, user_id: str = Depends(current_user_id)):
+    delete_user(user_id)
+    clear_session_cookie(response)
+    return {"ok": True}

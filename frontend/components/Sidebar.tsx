@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Inbox, Mail, MailOpen, RefreshCw, Search, AlertTriangle } from "lucide-react";
 import type { Email } from "@/lib/api";
 
@@ -18,6 +18,11 @@ type Props = {
   filter: Filter;
   onFilterChange: (f: Filter) => void;
   onCompose: () => void;
+  /**
+   * Optional pinned footer rendered beneath the message list (e.g. the
+   * connected-account badge + log-out button).
+   */
+  footer?: ReactNode;
 };
 
 const FILTERS: { id: Filter; label: string; icon: typeof Mail }[] = [
@@ -65,6 +70,7 @@ export default function Sidebar({
   filter,
   onFilterChange,
   onCompose,
+  footer,
 }: Props) {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -208,6 +214,8 @@ export default function Sidebar({
           })}
         </ul>
       </div>
+
+      {footer}
     </aside>
   );
 }

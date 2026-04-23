@@ -4,9 +4,12 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from db import init_db
 from routes import ai, auth, chat, emails
 
 app = FastAPI()
+init_db()
 
 # CORS origins are comma-separated in FRONTEND_ORIGIN. Local dev always stays
 # allowed; production domains (e.g. https://mailmind.vercel.app) are appended

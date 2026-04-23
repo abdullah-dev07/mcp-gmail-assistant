@@ -18,11 +18,15 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# NEXT_PUBLIC_BACKEND_URL is baked into the browser bundle at build time.
-# Default points at the host-mapped backend port; override with:
-#     docker build --build-arg NEXT_PUBLIC_BACKEND_URL=http://api.example.com ...
+# NEXT_PUBLIC_* vars are baked into the browser bundle at build time.
+# Override with:
+#     docker build --build-arg NEXT_PUBLIC_BACKEND_URL=https://api.example.com \
+#                  --build-arg NEXT_PUBLIC_API_KEY=...  ...
 ARG NEXT_PUBLIC_BACKEND_URL=http://localhost:8001
 ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+
+ARG NEXT_PUBLIC_API_KEY=
+ENV NEXT_PUBLIC_API_KEY=$NEXT_PUBLIC_API_KEY
 
 RUN npm run build
 

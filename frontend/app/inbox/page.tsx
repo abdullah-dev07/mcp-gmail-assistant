@@ -5,6 +5,7 @@ import {
   ApiError,
   confirmChatAction,
   getEmail,
+  getMe,
   listEmails,
   sendChatMessage,
   sendEmail,
@@ -12,12 +13,15 @@ import {
   type ChatResult,
   type Email,
   type EmailDetail as EmailDetailType,
+  type Me,
   type PendingAction,
 } from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import EmailDetail from "@/components/EmailDetail";
 import ReplyPanel, { type ReplyDraft } from "@/components/ReplyPanel";
 import ChatBar from "@/components/ChatBar";
+import AccountBadge from "@/components/AccountBadge";
+import ConnectGate from "@/components/ConnectGate";
 
 type Filter = "unread" | "inbox" | "sent";
 
@@ -41,6 +45,9 @@ function toErrorMessage(e: unknown): string {
 }
 
 export default function InboxPage() {
+  // Auth gate: `null` = checking, `false` = not connected, `Me` = connected.
+  const [me, setMe] = useState<Me | null | false>(null);
+
   const [filter, setFilter] = useState<Filter>("unread");
   const [search, setSearch] = useState("");
   const [emails, setEmails] = useState<Email[]>([]);
@@ -75,15 +82,37 @@ export default function InboxPage() {
         setSelectedId(data[0].id);
       }
     } catch (e) {
+      // Session expired / revoked mid-session → fall back to the gate.
+      if (e instanceof ApiError && e.status === 401) {
+        setMe(false);
+        return;
+      }
       setListError(toErrorMessage(e));
     } finally {
       setListLoading(false);
     }
   }, [filter, selectedId]);
 
+  // One-shot session check on mount. We keep this independent from the
+  // email list effect so the gate shows immediately without a 401 flash.
   useEffect(() => {
+    let cancelled = false;
+    getMe()
+      .then((result) => {
+        if (!cancelled) setMe(result ?? false);
+      })
+      .catch(() => {
+        if (!cancelled) setMe(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!me) return; // wait until we know the user is connected
     refresh();
-  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filter, me]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!selectedId) {
@@ -213,6 +242,15 @@ export default function InboxPage() {
     }
   }
 
+  if (me === null) {
+    // Brief flash while we check /auth/me — render nothing to avoid UI jank.
+    return <div className="flex h-[100dvh] w-full" />;
+  }
+
+  if (me === false) {
+    return <ConnectGate />;
+  }
+
   return (
     <div className="flex h-[100dvh] w-full flex-col">
       <div className="relative flex flex-1 min-h-0 overflow-hidden">
@@ -231,6 +269,17 @@ export default function InboxPage() {
             setSelectedId(null);
           }}
           onCompose={openCompose}
+          footer={
+            <AccountBadge
+              me={me}
+              onAfterLogout={() => {
+                setMe(false);
+                setEmails([]);
+                setSelectedId(null);
+                setDetail(null);
+              }}
+            />
+          }
         />
 
         <main className="relative flex flex-1 min-w-0 flex-col bg-[var(--background)]">

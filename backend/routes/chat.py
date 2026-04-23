@@ -1,8 +1,9 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from auth_session import current_refresh_token
 from services.gemini_service import chat_once, execute_pending
 
 try:
@@ -55,9 +56,12 @@ def _friendly_gemini_error(exc: BaseException) -> str | None:
 
 
 @router.post("", response_model=ChatResponse)
-async def chat(req: ChatRequest) -> ChatResponse:
+async def chat(
+    req: ChatRequest,
+    refresh_token: str = Depends(current_refresh_token),
+) -> ChatResponse:
     try:
-        result = await chat_once(req.message)
+        result = await chat_once(req.message, refresh_token)
     except Exception as exc:
         friendly = _friendly_gemini_error(exc)
         if friendly is not None:
@@ -72,9 +76,14 @@ async def chat(req: ChatRequest) -> ChatResponse:
 
 
 @router.post("/confirm", response_model=ConfirmResponse)
-async def confirm(req: PendingAction) -> ConfirmResponse:
+async def confirm(
+    req: PendingAction,
+    refresh_token: str = Depends(current_refresh_token),
+) -> ConfirmResponse:
     try:
-        text = await execute_pending({"tool": req.tool, "args": req.args})
+        text = await execute_pending(
+            {"tool": req.tool, "args": req.args}, refresh_token
+        )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
     return ConfirmResponse(reply=text)

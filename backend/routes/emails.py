@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, EmailStr, Field
 
+from auth_session import current_refresh_token
 from services.mcp_service import call_mcp_tool
 
 router = APIRouter()
@@ -114,10 +115,13 @@ def _parse_read_message(blob: str, message_id: str) -> dict:
 async def list_emails(
     query: str = Query("is:unread", description="Gmail search query, e.g. is:unread, in:inbox, in:sent"),
     maxResults: int = Query(15, ge=1, le=50),
+    refresh_token: str = Depends(current_refresh_token),
 ) -> dict:
     try:
         text = await call_mcp_tool(
-            "gmail_list_messages", {"query": query, "maxResults": maxResults}
+            "gmail_list_messages",
+            {"query": query, "maxResults": maxResults},
+            refresh_token,
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"MCP call failed: {exc}")
@@ -125,11 +129,15 @@ async def list_emails(
 
 
 @router.post("/send", response_model=SendEmailResponse)
-async def send_email(req: SendEmailRequest) -> SendEmailResponse:
+async def send_email(
+    req: SendEmailRequest,
+    refresh_token: str = Depends(current_refresh_token),
+) -> SendEmailResponse:
     try:
         text = await call_mcp_tool(
             "gmail_send_message",
             {"to": req.to, "subject": req.subject, "body": req.body},
+            refresh_token,
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"MCP call failed: {exc}")
@@ -138,10 +146,15 @@ async def send_email(req: SendEmailRequest) -> SendEmailResponse:
 
 # NOTE: keep the dynamic route last so `/send` is not captured by `{message_id}`.
 @router.get("/{message_id}")
-async def read_email(message_id: str):
+async def read_email(
+    message_id: str,
+    refresh_token: str = Depends(current_refresh_token),
+):
     try:
         text = await call_mcp_tool(
-            "gmail_read_message", {"messageId": message_id}
+            "gmail_read_message",
+            {"messageId": message_id},
+            refresh_token,
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"MCP call failed: {exc}")

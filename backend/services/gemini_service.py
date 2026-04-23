@@ -99,8 +99,8 @@ def _strip_schema_for_gemini(schema: dict[str, Any] | None) -> dict[str, Any]:
     return cleaned
 
 
-async def _build_tools() -> list[types.Tool]:
-    listing = await get_mcp_tools()
+async def _build_tools(refresh_token: str) -> list[types.Tool]:
+    listing = await get_mcp_tools(refresh_token)
     declarations: list[types.FunctionDeclaration] = []
     for tool in listing.tools:
         declarations.append(
@@ -126,10 +126,10 @@ def _deferred_response(tool_name: str, args: dict) -> str:
     )
 
 
-async def chat_once(message: str) -> ChatResult:
+async def chat_once(message: str, refresh_token: str) -> ChatResult:
     """Single-shot chat turn. Returns the model reply plus an optional
     pending action that the frontend must confirm before we actually run it."""
-    tools = await _build_tools()
+    tools = await _build_tools(refresh_token)
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM_INSTRUCTION,
         tools=tools,
@@ -156,7 +156,7 @@ async def chat_once(message: str) -> ChatResult:
                 result_text = _deferred_response(call.name, args)
             else:
                 try:
-                    result_text = await call_mcp_tool(call.name, args)
+                    result_text = await call_mcp_tool(call.name, args, refresh_token)
                 except Exception as exc:
                     result_text = f"Error running {call.name}: {exc}"
             tool_responses.append(
@@ -174,13 +174,13 @@ async def chat_once(message: str) -> ChatResult:
     return ChatResult(reply=text, pending_action=pending)
 
 
-async def execute_pending(pending: dict) -> str:
+async def execute_pending(pending: dict, refresh_token: str) -> str:
     """Run a previously-deferred tool call after the user has confirmed it."""
     tool = pending.get("tool")
     args = pending.get("args") or {}
     if tool not in DEFERRED_TOOLS:
         raise ValueError(f"{tool!r} is not a deferred tool")
-    return await call_mcp_tool(tool, args)
+    return await call_mcp_tool(tool, args, refresh_token)
 
 
 async def suggest_reply(email_text: str, instruction: str | None = None) -> str:

@@ -3,17 +3,32 @@
  *
  * Endpoints implemented in backend:
  *   GET  /auth/login           -> redirects to Google consent screen
- *   GET  /auth/callback        -> OAuth callback, prints tokens
+ *   GET  /auth/callback        -> OAuth callback; sets session cookie and
+ *                                 redirects back to FRONTEND_BASE_URL
+ *   GET  /auth/me              -> returns the connected account or 401
+ *   POST /auth/logout          -> revokes the session and clears the cookie
  *   GET  /emails?query=...     -> list emails matching a Gmail query
  *   GET  /emails/:id           -> full email body
  *   POST /emails/send          -> send a new mail / reply
  *   POST /ai/suggest-reply     -> AI-generated reply draft for an email
  *   POST /chat                 -> natural language assistant over MCP tools
  *   POST /chat/confirm         -> execute a deferred tool call (e.g. send)
+ *
+ * All requests send the `mm_session` HttpOnly cookie via
+ * `credentials: "include"`; the backend uses it to pick the caller's
+ * Gmail refresh token on every call. If you see a 401 from a protected
+ * endpoint, the user hasn't connected Gmail yet — send them to
+ * AUTH_LOGIN_URL.
  */
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8001";
+
+// Shared-secret header sent with every backend request. This value is baked
+// into the client bundle at build time via NEXT_PUBLIC_API_KEY, so it is
+// visible to anyone who inspects the browser devtools — treat it as a "keep
+// casual probes out" measure, not real authentication.
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "";
 
 export type Email = {
   id: string;
@@ -42,8 +57,12 @@ async function request<T>(
 ): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
+    // Send the mm_session HttpOnly cookie on every request. Required for
+    // any Gmail-backed endpoint; the backend returns 401 without it.
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
       ...(init?.headers ?? {}),
     },
   });
@@ -120,3 +139,18 @@ export async function confirmChatAction(
 }
 
 export const AUTH_LOGIN_URL = `${API_BASE}/auth/login`;
+
+export type Me = { userId: string; email: string };
+
+export async function getMe(): Promise<Me | null> {
+  try {
+    return await request<Me>(`/auth/me`);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) return null;
+    throw e;
+  }
+}
+
+export async function logout(): Promise<void> {
+  await request<{ ok: true }>(`/auth/logout`, { method: "POST" });
+}

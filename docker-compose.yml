@@ -16,6 +16,13 @@ services:
     container_name: mailmind-backend
     env_file:
       - ./backend/.env
+    environment:
+      # Put the SQLite user-token DB on a named volume so it survives
+      # `docker compose down`. Override DB_PATH in backend/.env if you
+      # want it somewhere else; keep it under /data so the volume works.
+      DB_PATH: /data/mailmind.db
+    volumes:
+      - mailmind-data:/data
     ports:
       - "8001:8001"
     restart: unless-stopped
@@ -46,3 +53,6 @@ services:
       backend:
         condition: service_started
     restart: unless-stopped
+
+volumes:
+  mailmind-data:
