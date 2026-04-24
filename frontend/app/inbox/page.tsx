@@ -125,11 +125,11 @@ export default function InboxPage() {
       return;
     }
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setDetailLoading(true);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setDetailError(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setDetail(null);
     getEmail(selectedId)
       .then((d) => {
