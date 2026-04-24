@@ -1,0 +1,19 @@
+# Dev-only tooling. Not installed into the production Docker image
+# (backend/Dockerfile only copies requirements.txt). Install locally
+# or in CI with:
+#     pip install -r requirements-dev.txt
+
+# Static security analysis (pattern-matches dangerous code: shell=True,
+# hardcoded passwords, weak crypto, etc.). Run with:
+#     bandit -r . -ll
+bandit
+
+# Scans installed deps (and transitive deps) against the PyPI
+# vulnerability DB. Run with:
+#     pip-audit
+pip-audit
+
+# Optional: ruff doubles as a fast Python linter + formatter + bandit
+# replacement. Enable the `S` ruleset to get bandit-equivalent checks:
+#     ruff check . --select S
+ruff
