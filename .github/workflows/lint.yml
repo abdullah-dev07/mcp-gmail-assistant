@@ -1,0 +1,56 @@
+name: Lint
+
+# Style-only workflow: ESLint on the Next.js app and Ruff on the Python
+# backend. Kept separate from ci.yml so a PR can show "tests green,
+# lint red" independently - lint failures shouldn't mask real bugs and
+# vice versa.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: eslint (next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+
+  backend:
+    name: ruff (python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Install ruff
+        # No need to install the full requirements.txt just to lint -
+        # ruff is a self-contained binary wheel.
+        run: pip install ruff
+
+      - run: ruff check .
