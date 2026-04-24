@@ -43,6 +43,10 @@ export default function ReplyPanel({
 
   useEffect(() => {
     if (!successMessage) return;
+    // Mirroring a prop into local state so we can auto-clear it after
+    // 3s; a derived value can't express the timer, so the rule is a
+    // false positive here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalSuccess(successMessage);
     const t = setTimeout(() => setLocalSuccess(null), 3000);
     return () => clearTimeout(t);

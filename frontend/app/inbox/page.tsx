@@ -111,17 +111,25 @@ export default function InboxPage() {
 
   useEffect(() => {
     if (!me) return; // wait until we know the user is connected
+    // Fetch-on-filter-change is a legitimate effect; React 19's
+    // set-state-in-effect rule is overly strict here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
-  }, [filter, me]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, me]);
 
   useEffect(() => {
     if (!selectedId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDetail(null);
       return;
     }
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDetailLoading(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDetailError(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDetail(null);
     getEmail(selectedId)
       .then((d) => {
