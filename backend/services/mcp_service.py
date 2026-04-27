@@ -15,11 +15,10 @@ from __future__ import annotations
 
 import os
 
-from dotenv import load_dotenv
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-load_dotenv()
+from config import settings
 
 
 def _server_params(refresh_token: str) -> StdioServerParameters:
@@ -27,8 +26,8 @@ def _server_params(refresh_token: str) -> StdioServerParameters:
         command="node",
         args=["../mcp-server/index.js"],
         env={
-            "GOOGLE_CLIENT_ID": os.getenv("GOOGLE_CLIENT_ID", ""),
-            "GOOGLE_CLIENT_SECRET": os.getenv("GOOGLE_CLIENT_SECRET", ""),
+            "GOOGLE_CLIENT_ID": settings.google_client_id,
+            "GOOGLE_CLIENT_SECRET": settings.google_client_secret,
             "GOOGLE_REFRESH_TOKEN": refresh_token,
             # Node needs PATH to resolve itself + its deps when spawned.
             "PATH": os.environ.get("PATH", ""),

@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 python-dotenv
+pydantic-settings
 google-genai
 google-auth
 google-auth-oauthlib

@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import os
-
 import httpx
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
@@ -13,9 +10,8 @@ from auth_session import (
     current_user_id,
     issue_session_cookie,
 )
+from config import settings
 from db import delete_user, get_email, upsert_user
-
-load_dotenv()
 
 router = APIRouter()
 
@@ -27,21 +23,19 @@ SCOPES = [
     "openid",
 ]
 
-_FRONTEND_BASE = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
-
 
 def _flow() -> Flow:
     return Flow.from_client_config(
         {
             "web": {
-                "client_id": os.getenv("GOOGLE_CLIENT_ID"),
-                "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
             }
         },
         scopes=SCOPES,
-        redirect_uri=os.getenv("GOOGLE_REDIRECT_URI"),
+        redirect_uri=settings.google_redirect_uri,
         autogenerate_code_verifier=False,
     )
 
@@ -93,7 +87,7 @@ async def callback(code: str):
 
     user_id = upsert_user(email=email, refresh_token=creds.refresh_token)
 
-    resp = RedirectResponse(url=f"{_FRONTEND_BASE}/?connected=1")
+    resp = RedirectResponse(url=f"{settings.frontend_base_url}/?connected=1")
     issue_session_cookie(resp, user_id)
     return resp
 

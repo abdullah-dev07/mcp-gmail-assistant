@@ -1,26 +1,21 @@
 import hmac
-import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from config import settings
 from db import init_db
 from routes import ai, auth, chat, emails
 
 app = FastAPI()
 init_db()
 
-# CORS origins are comma-separated in FRONTEND_ORIGIN. Local dev always stays
-# allowed; production domains (e.g. https://mailmind.vercel.app) are appended
-# via env on the deployment platform.
-_ORIGIN_ENV = os.getenv("FRONTEND_ORIGIN", "")
-_extra_origins = [o.strip() for o in _ORIGIN_ENV.split(",") if o.strip()]
-_origins = ["http://localhost:3000", *_extra_origins]
-
+# CORS origins: localhost:3000 is always allowed; production domains
+# (e.g. https://mailmind.vercel.app) are appended via FRONTEND_ORIGIN.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,7 +26,7 @@ app.add_middleware(
 # Every request to protected routes must carry `X-API-Key: <API_KEY>`.
 # If API_KEY is unset we skip the check (convenient for `make dev`), but on
 # any public deployment this env var MUST be set to a long random string.
-_API_KEY = os.getenv("API_KEY", "").strip()
+_API_KEY = settings.api_key.strip()
 
 # Paths that must remain reachable without a key:
 #   /            - health check for Render / Docker

@@ -13,25 +13,17 @@ send. This avoids silent outbound mail from a chat prompt.
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Any
 
-from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from config import settings
 from services.mcp_service import call_mcp_tool, get_mcp_tools
 
-load_dotenv()
-
-_API_KEY = os.getenv("GEMINI_API_KEY")
-_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-
-if not _API_KEY:
-    raise RuntimeError("GEMINI_API_KEY is not set in backend/.env")
-
-_client = genai.Client(api_key=_API_KEY)
+_MODEL = settings.gemini_model
+_client = genai.Client(api_key=settings.gemini_api_key)
 
 # Tools that MUST NOT fire without explicit user confirmation.
 DEFERRED_TOOLS: set[str] = {"gmail_send_message"}

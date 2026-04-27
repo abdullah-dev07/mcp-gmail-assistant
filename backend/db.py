@@ -7,26 +7,17 @@ at rest with Fernet so a DB dump can't be replayed against Gmail.
 
 from __future__ import annotations
 
-import os
 import sqlite3
 import threading
 import time
 import uuid
 
 from cryptography.fernet import Fernet, InvalidToken
-from dotenv import load_dotenv
 
-load_dotenv()
+from config import settings
 
-_DB_PATH = os.getenv("DB_PATH", "./mailmind.db")
-
-_key = os.getenv("TOKEN_ENCRYPTION_KEY")
-if not _key:
-    raise RuntimeError(
-        "TOKEN_ENCRYPTION_KEY is not set. Generate one with:\n"
-        "  python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'"
-    )
-_FERNET = Fernet(_key.encode())
+_DB_PATH = settings.db_path
+_FERNET = Fernet(settings.token_encryption_key.encode())
 
 _LOCK = threading.Lock()
 

@@ -10,23 +10,15 @@ Why a JWT and not a random opaque token:
 
 from __future__ import annotations
 
-import os
 import time
 
 import jwt
-from dotenv import load_dotenv
 from fastapi import Cookie, Depends, HTTPException, Response
 
+from config import settings
 from db import get_refresh_token
 
-load_dotenv()
-
-_SECRET = os.getenv("SESSION_JWT_SECRET")
-if not _SECRET:
-    raise RuntimeError(
-        "SESSION_JWT_SECRET is not set. Generate one with:\n"
-        "  python -c 'import secrets; print(secrets.token_urlsafe(64))'"
-    )
+_SECRET = settings.session_jwt_secret
 
 _ALG = "HS256"
 _COOKIE_NAME = "mm_session"
@@ -35,9 +27,8 @@ _TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days
 # In production (Vercel <-> Render = cross-site) the browser will only send
 # the cookie back if it's SameSite=None; Secure. For local http://localhost
 # dev, fall back to Lax so you don't need HTTPS to log in.
-_IS_PROD = os.getenv("ENV", "dev").lower() == "prod"
-_COOKIE_SAMESITE = "none" if _IS_PROD else "lax"
-_COOKIE_SECURE = _IS_PROD
+_COOKIE_SAMESITE = "none" if settings.is_prod else "lax"
+_COOKIE_SECURE = settings.is_prod
 
 
 def issue_session_cookie(resp: Response, user_id: str) -> None:
