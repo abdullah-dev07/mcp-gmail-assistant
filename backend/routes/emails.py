@@ -1,33 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, EmailStr, Field
 
 from auth_session import current_refresh_token
+from schemas.emails import SendEmailRequest, SendEmailResponse
 from services.mcp_service import call_mcp_tool
 
 router = APIRouter()
-
-
-class SendEmailRequest(BaseModel):
-    to: EmailStr
-    subject: str = Field(..., min_length=1, max_length=998)
-    body: str = Field(..., min_length=1)
-    # Accepted for forward-compat with threaded replies; the MCP send tool
-    # currently creates a new thread regardless.
-    inReplyTo: str | None = None
-
-
-class SendEmailResponse(BaseModel):
-    ok: bool = True
-    detail: str
-
-
-class EmailSummary(BaseModel):
-    id: str
-    sender: str = Field(..., alias="from")
-    subject: str
-    date: str
-
-    model_config = {"populate_by_name": True}
 
 
 def _parse_list_blob(blob: str) -> list[dict]:

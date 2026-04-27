@@ -1,9 +1,7 @@
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
 
 from auth_session import current_refresh_token
+from schemas.chat import ChatRequest, ChatResponse, ConfirmResponse, PendingAction
 from services.gemini_service import chat_once, execute_pending
 
 try:
@@ -14,24 +12,6 @@ except Exception:
     _GEMINI_CLIENT_ERROR = ()
 
 router = APIRouter()
-
-
-class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=4000)
-
-
-class PendingAction(BaseModel):
-    tool: str
-    args: dict[str, Any]
-
-
-class ChatResponse(BaseModel):
-    reply: str
-    pendingAction: PendingAction | None = None
-
-
-class ConfirmResponse(BaseModel):
-    reply: str
 
 
 @router.get("/health")

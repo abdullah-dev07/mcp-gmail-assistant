@@ -1,20 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
 
 from auth_session import current_refresh_token
+from schemas.ai import SuggestReplyRequest, SuggestReplyResponse
 from services.gemini_service import suggest_reply
 from services.mcp_service import call_mcp_tool
 
 router = APIRouter()
-
-
-class SuggestReplyRequest(BaseModel):
-    emailId: str = Field(..., min_length=1)
-    instruction: str | None = None
-
-
-class SuggestReplyResponse(BaseModel):
-    draft: str
 
 
 @router.post("/suggest-reply", response_model=SuggestReplyResponse)
